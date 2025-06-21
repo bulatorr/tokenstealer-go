@@ -1,9 +1,14 @@
 import requests
 
-headers = {"Authorization": "OAuth y0_asd"}
+token = "y0_asd"
+
+headers = {
+    "Authorization": f"OAuth {token}",
+    "ya-token": token,
+}
 
 response = requests.get(
-    "http://localhost:8080/get_current_track_alpha", headers=headers
+    "http://localhost:8000/get_current_track_beta", headers=headers
 )
 
 print(response.status_code)
