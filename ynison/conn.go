@@ -39,13 +39,15 @@ type IConn interface {
 	OnMessage(func(PutYnisonStateResponse))
 	OnTicket(func(string, RedirectResponse))
 	OnConnect(func())
-	OnDisconnect(func())
 }
 
 var _ IConn = &Conn{}
 
 func (conn *Conn) Connect(Host string, Header http.Header) error {
-	socket, _, err := websocket.DefaultDialer.Dial(Host, Header)
+	socket, resp, err := websocket.DefaultDialer.Dial(Host, Header)
+	if resp != nil {
+		resp.Body.Close()
+	}
 	if err != nil {
 		return err
 	}
@@ -78,9 +80,6 @@ func (conn *Conn) Close() {
 	case <-conn.done:
 	case <-timer.C:
 		conn.socket.Close()
-	}
-	for _, f := range conn.onDisconnect {
-		go f()
 	}
 }
 
@@ -129,11 +128,6 @@ func (conn *Conn) OnTicket(f func(string, RedirectResponse)) {
 // OnConnect event called after the connection is opened
 func (conn *Conn) OnConnect(f func()) {
 	conn.onConnect = append(conn.onConnect, f)
-}
-
-// OnDisconnect event called after the connection is closed
-func (conn *Conn) OnDisconnect(f func()) {
-	conn.onDisconnect = append(conn.onDisconnect, f)
 }
 
 func (conn *Conn) reader() {

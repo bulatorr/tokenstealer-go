@@ -44,8 +44,10 @@ func (y *Client) getTicket() (*RedirectResponse, error) {
 	header := y.header.Clone()
 	header.Set("Sec-WebSocket-Protocol", `Bearer, v2, {"Ynison-Device-Id":"`+y.deviceID+`","Ynison-Device-Info":"{\"app_name\":\"Chrome\",\"type\":1}"}`)
 	c, resp, err := websocket.DefaultDialer.Dial("wss://ynison.music.yandex.ru/redirector.YnisonRedirectService/GetRedirectToYnison", header)
+	if resp != nil {
+		resp.Body.Close()
+	}
 	if err != nil {
-		_ = resp
 		return nil, err
 	}
 	defer c.Close()
@@ -102,11 +104,6 @@ func (y *Client) OnMessage(f func(PutYnisonStateResponse)) {
 // OnConnect event
 func (y *Client) OnConnect(f func()) {
 	y.conn.OnConnect(f)
-}
-
-// OnDisconnect event
-func (y *Client) OnDisconnect(f func()) {
-	y.conn.OnDisconnect(f)
 }
 
 // IsConnected returns true if the socket is actively connected

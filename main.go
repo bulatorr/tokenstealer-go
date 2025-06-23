@@ -44,6 +44,7 @@ func main() {
 		TLSClientConfig: mTLSConfig,
 	}
 	client.Transport = tr
+	client.Timeout = 5 * time.Second
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.Default()
@@ -54,6 +55,13 @@ func main() {
 func tokenGIN(c *gin.Context) {
 	token := c.Request.Header.Get("ya-token")
 	tokenHeader := c.Request.Header.Get(AUTH_HEADER)
+	if token == "" && tokenHeader == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"place": "early",
+			"error": "token not found",
+		})
+		return
+	}
 	if token != "" {
 		tokenHeader = "OAuth " + token
 	}
@@ -69,7 +77,10 @@ func tokenGIN(c *gin.Context) {
 
 	err := y.Connect()
 	if err != nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"place": "ynison connect",
+			"error": err.Error(),
+		})
 		return
 	}
 
@@ -80,7 +91,10 @@ func tokenGIN(c *gin.Context) {
 			trackID := data.PlayerState.PlayerQueue.PlayableList[index].PlayableID
 			track, err := trackdata(trackID, tokenHeader)
 			if err != nil {
-				c.JSON(http.StatusTeapot, err.Error())
+				c.JSON(http.StatusTeapot, gin.H{
+					"place": "get track",
+					"error": err.Error(),
+				})
 				return
 			}
 			artists := []string{}
@@ -111,10 +125,16 @@ func tokenGIN(c *gin.Context) {
 			return
 		}
 	case <-time.After(10 * time.Second):
-		c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Failed to retrieve data"})
+		c.JSON(http.StatusGatewayTimeout, gin.H{
+			"place": "10 seconds timeout",
+			"error": "Failed to retrieve data",
+		})
 		return
 	case <-c.Request.Context().Done():
-		c.AbortWithStatus(http.StatusGatewayTimeout)
+		c.JSON(http.StatusGatewayTimeout, gin.H{
+			"place": "context.Done",
+			"error": "context.Done",
+		})
 		return
 	}
 }
